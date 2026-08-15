@@ -1,0 +1,11 @@
+// @polsia:framework-owned - DO NOT EDIT. Code installed by polsia/modules/waitlist@0.2.0. Drift = commit rejected.
+//
+// Self-contained waitlist model. No @relation, no foreign-model mutation.
+// Datasource + generator live in prisma/schema/_base.prisma (framework-owned
+// by the template). Do NOT redeclare them here.
+
+model WaitlistEntry {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  createdAt DateTime @default(now())
+}

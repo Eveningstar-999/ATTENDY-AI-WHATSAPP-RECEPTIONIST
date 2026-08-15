@@ -1,0 +1,90 @@
+// App-owned schema for the price-gap detection surface. Composed alongside
+// _base.prisma (datasource + generator). Foreign keys reference the app's
+// own models; no relation back to the framework-owned auth User model.
+
+model Sku {
+  id        String   @id
+  title     String
+  brand     String
+  category  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  listings  MarketplaceListing[]
+  events    DetectionEvent[]
+  @@index([category])
+}
+
+model Marketplace {
+  id          String @id
+  displayName String
+  currency    String
+
+  listings  MarketplaceListing[]
+  fees      FeeTable[]
+  eventsOut DetectionEvent[] @relation("EventSource")
+  eventsIn  DetectionEvent[] @relation("EventDest")
+}
+
+model MarketplaceListing {
+  skuId         String
+  marketplaceId String
+  priceCents    Int
+  currency      String
+  url           String
+  inStock       Boolean  @default(true)
+  lastSeenAt    DateTime @updatedAt
+
+  sku        Sku        @relation(fields: [skuId], references: [id])
+  marketplace Marketplace @relation(fields: [marketplaceId], references: [id])
+
+  @@id([skuId, marketplaceId])
+  @@index([marketplaceId])
+}
+
+model FxRate {
+  base  String
+  quote String
+  rate  Decimal @db.Decimal(18, 8)
+  asOf  DateTime @updatedAt
+
+  @@id([base, quote])
+}
+
+model FeeTable {
+  marketplaceId String
+  currency      String
+  percentBps    Int
+  flatCents     Int
+  asOf          DateTime @updatedAt
+
+  marketplace Marketplace @relation(fields: [marketplaceId], references: [id])
+
+  @@id([marketplaceId, currency])
+  @@index([marketplaceId])
+}
+
+model DetectionEvent {
+  id                        String   @id @default(cuid())
+  skuId                     String
+  sourceMarketplaceId       String
+  destMarketplaceId         String
+  sourcePriceCents          Int
+  destPriceCents            Int
+  currency                  String
+  estimatedGrossMarginCents Int
+  estimatedGrossMarginBps   Int
+  detectedAt                DateTime @default(now())
+
+  sku             Sku        @relation(fields: [skuId], references: [id])
+  sourceMarketplace Marketplace @relation("EventSource", fields: [sourceMarketplaceId], references: [id])
+  destMarketplace   Marketplace @relation("EventDest", fields: [destMarketplaceId], references: [id])
+
+  @@index([detectedAt])
+  @@index([skuId, detectedAt])
+}
+
+model ScanMarker {
+  id                 Int      @id @default(1)
+  lastRunAt          DateTime @updatedAt
+  lastDetectionCount Int
+}
