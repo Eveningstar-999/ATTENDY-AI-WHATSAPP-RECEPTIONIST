@@ -1,130 +1,262 @@
-# Attendly
+# polsia-next-v2
 
-### AI-Powered WhatsApp Receptionist for Small Businesses
+The canonical Next.js template for Polsia-generated customer apps.
 
-Attendly is an AI-powered business automation platform designed to help small and medium-sized businesses communicate with customers, capture leads, manage appointments and automate follow-ups.
+This repository is a scaffold with the shadcn UI baseline built in. It ships the
+framework defaults every app needs on day one: Next.js 16 App Router, React 19,
+Tailwind 4, Prisma client wiring, Biome, Vitest, security headers, a token-driven
+theme, and a broad shadcn primitive set. Product capabilities such as auth,
+billing, email, analytics, dashboards, and multi-tenant workflows are installed
+from `Polsia-Inc/modules`.
 
-The long-term vision is to provide businesses with a team of AI employees that can handle repetitive customer-facing and operational tasks.
+## What This Is
 
-## 🚀 MVP
+This is a template, not a hand-customized starter app. The Polsia engineering
+agent reads the ownership map, installs modules when needed, and edits only the
+bounded app-owned zones. The directory shape and `.polsia/ownership.json` are
+the contract that keeps framework files, module files, and customer code
+separate.
 
-The first version of Attendly focuses on an AI WhatsApp receptionist.
+The canonical template id is `polsia-next-v2`; the GitHub repository is
+`Polsia-Inc/template-next`.
 
-The MVP is designed to:
+## What Is Included
 
-- Answer customer questions
-- Provide business information
-- Capture potential leads
-- Store customer information
-- Manage conversations
-- Check appointment availability
-- Book appointments
-- Reschedule appointments
-- Cancel appointments
-- Send confirmations
-- Automate follow-ups
-- Hand conversations to human employees when necessary
+- Next.js 16 App Router, React 19, TypeScript, and Tailwind 4.
+- shadcn UI baseline: `components.json`, `cn()`, a committed primitive set in
+  `src/components/ui/**`, sonner toasts, next-themes, and theme tokens in
+  `src/app/globals.css`.
+- Prisma 6 client setup: `prisma/schema/_base.prisma`, `prisma.config.ts`, and
+  the server-only singleton in `src/lib/db.ts`. The actual database is external;
+  Polsia provisions Postgres and injects `DATABASE_URL`.
+- Typed environment validation through `src/lib/env.ts`.
+- Data-plane examples: a shared zod contract, an `/api/example` route handler,
+  and a client page that uses `apiFetch`.
+- CSP and security headers in `proxy.ts`, `next.config.ts`, and
+  `src/lib/csp.ts`.
+- SEO plumbing: `src/lib/brand.ts`, `src/lib/site.ts`, `robots.ts`,
+  `sitemap.ts`, `manifest.ts`, and a default Open Graph image route.
+- Unit tests covering the ownership map, CSP posture, env validation, and the
+  example data contract.
 
-## 🎯 Target Businesses
+## What Is Not Included
 
-Attendly is designed for service-based SMBs such as:
+- No auth, billing, email, analytics, dashboards, or other product modules.
+- No database server, Dockerfile, compose file, or Procfile.
+- No real env files. `.env.example` documents the expected variables; deploys
+  receive actual values from the platform.
+- No Server Actions. Product pages call `/api/*` route handlers through
+  `src/lib/api-client.ts`.
 
-- Clinics
-- Salons
-- Restaurants
-- Real-estate agencies
-- Car dealerships
-- Pharmacies
-- Other service businesses
+## Ownership Model
 
-## 🔄 Example Workflow
+Always read `.polsia/installed.json`, `.polsia/ownership.json`, and
+`.polsia/overrides.json` before editing.
 
-Customer → WhatsApp → Attendly AI → Understand request → Answer or perform action → Save customer/lead → Book appointment → Follow up automatically
+| Tier | Examples | Who edits |
+| --- | --- | --- |
+| `framework_owned` | `src/lib/db.ts`, `src/lib/utils.ts`, `components.json`, `prisma.config.ts`, `AGENTS.md`, `.polsia/installed.json`, `.polsia/ownership.json` | Framework or owning module only. |
+| `user_owned` | `src/components/ui/**`, `src/app/(setup)/page.tsx`, `src/app/(custom)/**`, `src/lib/brand.ts`, `src/lib/nav.ts`, `public/**`, `README.md`, `.polsia/overrides.json` | The app agent or customer. |
+| `shared` | `src/app/globals.css`, `src/lib/env.ts`, `src/app/layout.tsx`, `proxy.ts`, `next.config.ts`, `package.json`, `.env.example` | Edit only through declared slots or the documented merge strategy. |
 
-### Example
+`.polsia/ownership.json` is the source of truth. Source banners are reader
+signage only.
 
-A customer messages a car dealership:
+## What Not To Edit
 
-> "What is the price of the XUV700 and can I book a test drive tomorrow?"
+- Anything marked `framework_owned` in `.polsia/ownership.json`.
+  Comment-capable source files carry `@polsia:framework-owned` banners as
+  signage, but the ownership map is the authority.
+- Anything outside declared slot markers in shared files such as
+  `next.config.ts`, `proxy.ts`, `src/lib/env.ts`, `src/app/layout.tsx`, and
+  `src/app/globals.css`.
+- `.polsia/installed.json` and `.polsia/ownership.json`. They are generated
+  state files. Use `.polsia/overrides.json` for hand-editable module policy.
 
-Attendly can:
+## Platform Rules
 
-1. Answer the customer's question
-2. Collect customer details
-3. Create a lead
-4. Check appointment availability
-5. Book the test drive
-6. Notify the salesperson
-7. Send confirmation
-8. Follow up later
+- Keep Cache Components off unless the platform explicitly changes that policy.
+- Use `proxy.ts`; do not add `middleware.ts`.
+- Keep data and mutations behind `/api/*` route handlers. Do not add Server
+  Actions.
+- Keep Prisma datasource and generator declarations in `prisma/schema/_base.prisma`.
+  App or module schema files add models only.
+- `src/app/(auth)/**` and `src/app/(dashboard)/**` pages are user-owned — build and
+  restyle them freely. Don't hand-roll the auth security surface (`src/lib/auth.ts`,
+  `src/app/api/auth/**`, the prisma auth schema, `require-auth`/`require-admin`):
+  those are framework-owned, installed by the auth module.
+- Put recurring work in `polsia.toml` `[[crons]]`; do not use in-process
+  schedulers for product behavior.
 
-## 🧠 AI Employee
+## Agent Workflow
 
-Attendly is designed around the idea of AI employees rather than simple chatbots.
+1. Read `AGENTS.md` and the three `.polsia/` state files.
+2. Decide whether the request is app-specific UI/business logic or a reusable
+   capability that should come from a module.
+3. Install modules through the Polsia module installer when a module owns the
+   capability. Do not clone module files by hand.
+4. Write app-specific code in user-owned areas:
+   - Routes: `src/app/(custom)/<feature>/page.tsx`
+   - API handlers: `src/app/api/<resource>/route.ts`
+   - Contracts: `src/lib/contracts/<resource>.ts`
+   - Business logic: `src/lib/business/<feature>.ts`
+   - Custom components: `src/components/custom/<feature>.tsx`
+   - Hooks: `src/hooks/use-<feature>.ts`
+5. Replace the starter home by editing `src/app/(setup)/page.tsx` in place, or
+   delete the `(setup)` route group before adding another page that resolves to
+   `/`.
+6. Set the product identity in `src/lib/brand.ts`, update `src/lib/nav.ts` for
+   reachable public pages, and rely on the built-in robots, sitemap, metadata,
+   and Open Graph plumbing.
+7. Keep every feature reachable from the home page or, for authenticated
+   features, the dashboard.
+8. Run the relevant checks before shipping.
 
-Future AI employees may include:
+Module installs go through the Polsia module installer. The installer owns
+module file writes, ownership-map updates, install hashes, and module validators.
+Do not clone module files or copy them by hand.
 
-- AI Receptionist
-- AI Sales Agent
-- AI Customer Support Agent
-- AI Appointment Agent
-- AI Follow-up Agent
+## Data Plane
 
-The initial MVP focuses on the AI Receptionist.
+Product pages are client components. They call route handlers through
+`apiFetch`, passing a shared zod schema to validate the response at runtime.
 
-## 🛠️ Core Actions
+Each resource should have one shared contract in `src/lib/contracts/<resource>.ts`.
+The route handler validates request and response shapes with that contract, and
+the client imports the same schema.
 
-The AI should eventually be able to perform real business actions through tools/functions such as:
+Validation errors from route handlers use:
 
-- `capture_lead`
-- `check_availability`
-- `create_appointment`
-- `reschedule_appointment`
-- `cancel_appointment`
-- `update_customer`
-- `send_message`
+```ts
+{ errors: { fieldName: 'Message' } }
+```
 
-## 🤝 Human Handoff
+Client forms map those errors with `applyServerErrors`. Transient success or
+unexpected failure feedback should use `toast` from `sonner`.
 
-Attendly is designed to work alongside human employees.
+## UI
 
-When the AI cannot confidently handle a request, or when a customer asks for a human, the conversation should be transferred to an appropriate employee.
+The template already includes a broad shadcn primitive set under
+`src/components/ui/**`. Compose those primitives first, restyle through theme
+tokens and component variants, and add new primitives with:
 
-## 🗺️ Roadmap
+```bash
+npx shadcn@latest add <name> --yes
+```
 
-### Phase 1 — MVP
-- Business configuration
-- AI receptionist
-- Test conversation interface
-- Conversation history
-- Lead management
-- Appointment management
-- Basic dashboard
+Reusable app-specific UI belongs in `src/components/custom/**`.
 
-### Phase 2
-- WhatsApp Business API integration
-- Real customer conversations
-- Automated follow-ups
-- Notifications
-- Employee assignment
+## Directory Guide
 
-### Phase 3
-- AI voice agent
-- Sales agent
-- Advanced customer support
-- Invoicing automation
-- Additional business integrations
+```text
+.
+├── .polsia/                          Generated state and ownership map
+├── prisma/
+│   ├── schema/_base.prisma           Datasource + generator only
+│   └── migrations/migration_lock.toml Project-level migration lock
+├── public/                           Customer assets
+├── src/
+│   ├── app/
+│   │   ├── (setup)/page.tsx          Starter home served at /
+│   │   ├── (custom)/example/page.tsx Data-plane example page
+│   │   ├── api/example/route.ts      Data-plane example route
+│   │   ├── health/route.ts           Deploy healthcheck
+│   │   ├── layout.tsx                Root layout and providers slot
+│   │   └── globals.css               Tailwind theme and brand token slot
+│   ├── components/
+│   │   ├── ui/                       shadcn primitives
+│   │   ├── custom/                   App-owned compositions
+│   │   └── theme-provider.tsx        next-themes wrapper
+│   ├── hooks/                        App-owned React hooks
+│   ├── lib/
+│   │   ├── api-client.ts             Client transport helper
+│   │   ├── brand.ts                  Product name and description
+│   │   ├── contracts/example.ts      Example shared zod contract
+│   │   ├── csp.ts                    CSP builder
+│   │   ├── db.ts                     Prisma singleton
+│   │   ├── env.ts                    Typed env schema
+│   │   ├── forms.ts                  Server error mapping
+│   │   ├── nav.ts                    App navigation config
+│   │   └── utils.ts                  cn()
+│   └── modules/                      Vendored module installs
+├── tests/unit/                       Vitest unit tests
+├── next.config.ts                    Next config and security headers
+├── proxy.ts                          CSP nonce and middleware chain slot
+├── polsia.toml                       Deploy manifest and scheduled jobs
+└── AGENTS.md                         Engineering agent operating manual
+```
 
-## 🚧 Project Status
+## Security Headers
 
-Attendly is currently an early-stage MVP/project in development.
+`next.config.ts` sets baseline response headers:
 
-Some features are planned or partially implemented and should not be considered production-ready until their real integrations and workflows have been completed.
+- `Strict-Transport-Security`
+- `X-Content-Type-Options`
+- `X-Frame-Options`
+- `Referrer-Policy`
+- `Permissions-Policy`
+- `Cross-Origin-Opener-Policy`
+- `Cross-Origin-Resource-Policy`
 
-## 📌 Vision
+`proxy.ts` sets a per-request Content Security Policy. `script-src` stays strict
+with a nonce and `strict-dynamic`; `style-src` allows inline styles so Radix and
+shadcn runtime positioning works in production.
 
-The long-term goal is to build an AI operating system for businesses where companies can create and manage multiple AI employees from a single platform.
+## Day-1 Validators
 
----
+The bare scaffold validator floor is declared in
+`.polsia/installed.json#day_1_floor`. Module-specific validators are added by
+module manifests when modules install.
 
-Built as an early-stage AI business automation project.
+- `no-secrets-in-client-bundle`
+- `server-only-import-on-secret-modules`
+- `agent-has-no-prod-db-credentials`
+- `db-ssl-required`
+- `parameterized-queries-only`
+- `security-headers-present`
+- `lockfile-committed-and-pinned`
+- `lifecycle-scripts-disabled`
+- `next-version-not-affected-by-cve-2025-29927`
+
+## Local Development
+
+Use npm; the lockfile is committed.
+
+```bash
+npm install
+npm run typecheck
+npm run lint
+npm run test
+SKIP_ENV_VALIDATION=1 npm run dev
+```
+
+`npm run dev` and `npm run build` validate `DATABASE_URL` and
+`NEXT_PUBLIC_APP_URL` when `SKIP_ENV_VALIDATION` is not set. On a local clone
+without a provisioned database, either set the required vars in `.env.local` or
+prefix the command with `SKIP_ENV_VALIDATION=1`.
+
+`typecheck`, `lint`, and `test` do not require env. With no modules installed,
+`/` serves the `(setup)` placeholder until a module or app-authored root page
+takes over.
+
+## Versions
+
+Pinned exact versions are used for the framework stack:
+
+- Next.js 16.2.6, App Router
+- React 19.2.7
+- Tailwind CSS 4.3.0, CSS-first `@theme`
+- shadcn/ui New York style
+- sonner 2.0.7
+- TypeScript 5.5.4, strict mode
+- Biome 2.3.1, lint and format
+- Vitest 3.2.6
+- Prisma 6.19.3
+- Node >=20.18.1
+
+Security `overrides` in `package.json` pin patched transitive dependency
+versions that direct framework pins cannot reach on their own.
+
+## License
+
+MIT. See [LICENSE](./LICENSE).
